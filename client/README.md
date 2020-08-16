@@ -3,7 +3,8 @@
 ## Run/Build
 
 To run the react client w/ inspect and hot reload:
-- `npm run dev`
+- first time: `npm install`
+- `npm start`
 - first time: add the following VSCode config in `{projectDir}/.vscode/launch.json`
 ```
 {

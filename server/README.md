@@ -3,6 +3,7 @@
 ## Run/Build
 
 To run the server w/ inspect and hot reload:
+- first time: `npm install`
 - `npm run dev`
 
 To debug the server:
