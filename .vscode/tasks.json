@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [{
+      "label": "Dev server",
+      "type": "shell",
+      "command": "yarn run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/server"
+      }
+    },
+    {
+      "label": "Dev client",
+      "type": "shell",
+      "command": "yarn start",
+      "options": {
+        "cwd": "${workspaceFolder}/client"
+      }
+    },
+    {
+      "label": "Dev server + client",
+      "dependsOn": ["Dev server", "Dev client"]
+    }
+  ]
+}
