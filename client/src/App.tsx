@@ -1,18 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
-import logo from "./logo.svg";
 import "./App.css";
+import { Position, Player, PlayerDictionary, MessageName } from "./types/types";
 
 import socketIoClient from "socket.io-client";
-
-interface Position {
-  horizontal: number;
-  vertical: number;
-}
-
-interface Player {
-  id: string;
-  position: Position;
-}
+import { setupSocketIOClient, emitPositionUpdate } from "./socketIOConnector";
 
 const socket = socketIoClient("http://localhost:8080");
 
@@ -21,35 +12,12 @@ export default () => {
     horizontal: 0,
     vertical: 0,
   });
-  const [users, userPositions] = useState<{ [id: string]: Player }>({});
+  const [players, setPlayers] = useState<PlayerDictionary>({});
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    socket.on(
-      "playerPositions",
-      (playerPositions: { [id: string]: Player }) => {
-        userPositions(playerPositions);
-      }
-    );
-
-    socket.on("positionUpdate", (player: Player) => {
-      const newUsers = { ...users };
-      newUsers[player.id] = player;
-      userPositions(newUsers);
-    });
-
-    socket.on("playerJoined", (player: Player) => {
-      const newUsers = { ...users };
-      newUsers[player.id] = player;
-      userPositions(newUsers);
-    });
-
-    socket.on("playerLeft", (player: Player) => {
-      const newUserPositions = { ...users };
-      delete newUserPositions[player.id];
-      userPositions(newUserPositions);
-    });
+    setupSocketIOClient(socket, players, setPlayers);
   }, []);
 
   useEffect(() => {
@@ -63,13 +31,13 @@ export default () => {
 
     // draw
     drawPlayer(context, myPosition, true);
-    Object.values(users).forEach((user) =>
-      drawPlayer(context, user.position, false)
+    Object.values(players).forEach((player) =>
+      drawPlayer(context, player.position, false)
     );
-  }, [myPosition, users]);
+  }, [myPosition, players]);
 
   useEffect(() => {
-    socket.emit("positionUpdate", myPosition);
+    emitPositionUpdate(socket, myPosition);
   }, [myPosition]);
 
   const drawPlayer = (
