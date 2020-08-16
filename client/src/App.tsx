@@ -1,18 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
-import logo from "./logo.svg";
 import "./App.css";
+import { Position, Player, PlayerDictionary, MessageName } from "./types/types";
 
 import socketIoClient from "socket.io-client";
-
-interface Position {
-  horizontal: number;
-  vertical: number;
-}
-
-interface Player {
-  id: string;
-  position: Position;
-}
 
 const socket = socketIoClient("http://localhost:8080");
 
@@ -21,31 +11,31 @@ export default () => {
     horizontal: 0,
     vertical: 0,
   });
-  const [users, userPositions] = useState<{ [id: string]: Player }>({});
+  const [users, userPositions] = useState<PlayerDictionary>({});
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     socket.on(
-      "playerPositions",
+      MessageName.PlayerPositions,
       (playerPositions: { [id: string]: Player }) => {
         userPositions(playerPositions);
       }
     );
 
-    socket.on("positionUpdate", (player: Player) => {
+    socket.on(MessageName.PositionUpdate, (player: Player) => {
       const newUsers = { ...users };
       newUsers[player.id] = player;
       userPositions(newUsers);
     });
 
-    socket.on("playerJoined", (player: Player) => {
+    socket.on(MessageName.PlayerJoined, (player: Player) => {
       const newUsers = { ...users };
       newUsers[player.id] = player;
       userPositions(newUsers);
     });
 
-    socket.on("playerLeft", (player: Player) => {
+    socket.on(MessageName.PlayerLeft, (player: Player) => {
       const newUserPositions = { ...users };
       delete newUserPositions[player.id];
       userPositions(newUserPositions);
@@ -69,7 +59,7 @@ export default () => {
   }, [myPosition, users]);
 
   useEffect(() => {
-    socket.emit("positionUpdate", myPosition);
+    socket.emit(MessageName.PositionUpdate, myPosition);
   }, [myPosition]);
 
   const drawPlayer = (
