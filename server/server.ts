@@ -1,10 +1,10 @@
-import { Position, Player, PlayerDictionary } from "../client/src/types/types";
+import { PlayerDictionary } from "../client/src/types/types";
 
 import * as express from "express";
 
 import { createServer } from "http";
 import * as SocketIO from "socket.io";
-import { setupSocketIOServer } from "./socketioConnector";
+import { setupSocketIOServer } from "./socketIOConnector";
 
 const app = express();
 const http = createServer(app);

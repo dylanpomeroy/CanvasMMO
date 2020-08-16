@@ -3,6 +3,7 @@ import "./App.css";
 import { Position, Player, PlayerDictionary, MessageName } from "./types/types";
 
 import socketIoClient from "socket.io-client";
+import { setupSocketIOClient, emitPositionUpdate } from "./socketIOConnector";
 
 const socket = socketIoClient("http://localhost:8080");
 
@@ -11,35 +12,12 @@ export default () => {
     horizontal: 0,
     vertical: 0,
   });
-  const [users, userPositions] = useState<PlayerDictionary>({});
+  const [players, setPlayers] = useState<PlayerDictionary>({});
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    socket.on(
-      MessageName.PlayerPositions,
-      (playerPositions: { [id: string]: Player }) => {
-        userPositions(playerPositions);
-      }
-    );
-
-    socket.on(MessageName.PositionUpdate, (player: Player) => {
-      const newUsers = { ...users };
-      newUsers[player.id] = player;
-      userPositions(newUsers);
-    });
-
-    socket.on(MessageName.PlayerJoined, (player: Player) => {
-      const newUsers = { ...users };
-      newUsers[player.id] = player;
-      userPositions(newUsers);
-    });
-
-    socket.on(MessageName.PlayerLeft, (player: Player) => {
-      const newUserPositions = { ...users };
-      delete newUserPositions[player.id];
-      userPositions(newUserPositions);
-    });
+    setupSocketIOClient(socket, players, setPlayers);
   }, []);
 
   useEffect(() => {
@@ -53,13 +31,13 @@ export default () => {
 
     // draw
     drawPlayer(context, myPosition, true);
-    Object.values(users).forEach((user) =>
-      drawPlayer(context, user.position, false)
+    Object.values(players).forEach((player) =>
+      drawPlayer(context, player.position, false)
     );
-  }, [myPosition, users]);
+  }, [myPosition, players]);
 
   useEffect(() => {
-    socket.emit(MessageName.PositionUpdate, myPosition);
+    emitPositionUpdate(socket, myPosition);
   }, [myPosition]);
 
   const drawPlayer = (
