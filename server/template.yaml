@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Resources:
-  MyLambdaRouteHandlerFunction:
+  TestLambdaHandler:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: index.handler
+      Handler: test.handler
       Timeout: 30
       Runtime: nodejs12.x
       CodeUri: ./server/built/
@@ -13,12 +13,32 @@ Resources:
         - CloudWatchLogsFullAccess
         - AmazonAPIGatewayInvokeFullAccess
         - AmazonAPIGatewayAdministrator
+  OnConnectLambdaHandler:
+    Type: AWS::Serverless::Function
+    DependsOn:
+      - SessionsDynamoTable
+    Properties:
+      Handler: onConnect.handler
+      Runtime: nodejs12.x
+      CodeUri: ./server/built/
+      Policies:
+        - AWSLambdaFullAccess
+        - CloudWatchLogsFullAccess
+        - AmazonAPIGatewayInvokeFullAccess
+        - AmazonAPIGatewayAdministrator
+        - AmazonDynamoDBFullAccess
+      Environment:
+        Variables:
+          SESSIONS_TABLE_NAME:
+            !Select [1, !Split ["/", !GetAtt SessionsDynamoTable.Arn]]
+
   WebSocketApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
       Name: WebSocketApi
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: "$request.body.action"
+
   TestRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -30,6 +50,18 @@ Resources:
         - "/"
         - - "integrations"
           - !Ref TestLambdaIntegration
+  OnConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: newSession
+      AuthorizationType: NONE
+      OperationName: OnConnectRoute
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref OnConnectLambdaIntegration
+
   TestLambdaIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -37,26 +69,49 @@ Resources:
       Description: Test Integration
       IntegrationType: AWS_PROXY
       IntegrationUri:
-        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyLambdaRouteHandlerFunction.Arn}/invocations
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TestLambdaHandler.Arn}/invocations
+  OnConnectLambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnConnectLambdaHandler.Arn}/invocations
+
+  SessionsDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
   Deployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
       - TestRoute
+      - OnConnectRoute
     Properties:
       ApiId: !Ref WebSocketApi
   Stage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       StageName: v1
-      Description: Version 1 'stage'
       DeploymentId: !Ref Deployment
       ApiId: !Ref WebSocketApi
+
   PortfolioBlocksPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
       - WebSocketApi
-      - MyLambdaRouteHandlerFunction
+      - TestLambdaHandler
+      - OnConnectLambdaHandler
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref MyLambdaRouteHandlerFunction
+      FunctionName: !Ref TestLambdaHandler
       Principal: apigateway.amazonaws.com

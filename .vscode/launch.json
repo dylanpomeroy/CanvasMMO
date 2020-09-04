@@ -7,6 +7,34 @@
     {
       "type": "aws-sam",
       "request": "direct-invoke",
+      "name": "server:OnConnectLambdaHandler",
+      "invokeTarget": {
+        "target": "template",
+        "templatePath": "server/template.yaml",
+        "logicalId": "OnConnectLambdaHandler"
+      },
+      "lambda": {
+        "payload": {},
+        "environmentVariables": {}
+      }
+    },
+    {
+      "type": "aws-sam",
+      "request": "direct-invoke",
+      "name": "server:TestLambdaHandler",
+      "invokeTarget": {
+        "target": "template",
+        "templatePath": "server/template.yaml",
+        "logicalId": "TestLambdaHandler"
+      },
+      "lambda": {
+        "payload": {},
+        "environmentVariables": {}
+      }
+    },
+    {
+      "type": "aws-sam",
+      "request": "direct-invoke",
       "name": "server-sam:HelloWorldFunction",
       "invokeTarget": {
         "target": "template",
